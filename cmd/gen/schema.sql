@@ -6,3 +6,7 @@ create table if not exists entries (
 );
 create unique index if not exists ux_entries_word_pos on entries(word, pos);
 create index if not exists ix_entries_word on entries(word);
+create table if not exists words (
+  id integer primary key,
+  word text not null unique
+);

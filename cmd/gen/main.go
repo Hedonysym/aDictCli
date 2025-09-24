@@ -55,6 +55,9 @@ func run(inPath, outPath, schemaPath string) error {
 	if err != nil {
 		return err
 	}
+
+	// setting sql inserts
+
 	insEntry, err := tx.Prepare(`INSERT INTO entries(word,pos,defs) VALUES(?,?,?) on conflict (word,pos) do update set defs=excluded.defs`)
 	if err != nil {
 		return err
@@ -65,6 +68,10 @@ func run(inPath, outPath, schemaPath string) error {
 
 	updDefs, _ := tx.Prepare(`UPDATE entries SET defs=? WHERE word=? AND pos=?`)
 	defer updDefs.Close()
+	insWord, _ := tx.Prepare(`INSERT INTO words(word) VALUES(?) ON CONFLICT DO NOTHING`)
+	defer insWord.Close()
+
+	// reading json dictionary
 
 	f, err := os.Open(inPath)
 	if err != nil {
@@ -80,6 +87,8 @@ func run(inPath, outPath, schemaPath string) error {
 	if d, ok := tok.(json.Delim); !ok || d != '[' {
 		return io.ErrUnexpectedEOF
 	}
+
+	// generating entries
 
 	count := 0
 	for dec.More() {
@@ -99,6 +108,9 @@ func run(inPath, outPath, schemaPath string) error {
 		var res sql.Result
 
 		if res, err = insEntry.Exec(word, wordCase(pos), string(defsJSON)); err != nil {
+			return err
+		}
+		if _, err := insWord.Exec(word); err != nil {
 			return err
 		}
 		aff, _ := res.RowsAffected()
@@ -128,6 +140,9 @@ func run(inPath, outPath, schemaPath string) error {
 	if err := tx.Commit(); err != nil {
 		return err
 	}
+
+	// cleanup
+
 	_, _ = db.Exec(`VACUUM; PRAGMA optimize;`)
 	log.Printf("done, total entries: %d", count)
 	return nil

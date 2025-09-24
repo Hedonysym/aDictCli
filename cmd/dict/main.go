@@ -45,6 +45,6 @@ func main() {
 		}
 	}
 	if !found {
-		fmt.Println("no entry found")
+		log.Fatal("word not found")
 	}
 }
