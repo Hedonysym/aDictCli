@@ -19,7 +19,7 @@ type entry struct {
 }
 
 func main() {
-	in := flag.String("in", "./data/webster.json", "input JSON")
+	in := flag.String("in", "./data/dictionary.json", "input JSON")
 	out := flag.String("out", "./assets/dictionary.db", "output SQLite DB")
 	schema := flag.String("schema", "./cmd/gen/schema.sql", "schema SQL file")
 	flag.Parse()
