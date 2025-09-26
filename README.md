@@ -5,10 +5,23 @@ An offline cli dictionary with autocompletion/spell correction based on phoeneti
 ## Included external packages:
 
 - modernc.org/sqlite and dependancies
-- github.com/lithammer/fuzzysearch/fuzzy
+- github.com/mattn/go-sqlite3
 
 A special thanks to https://github.com/ssvivian/WebstersDictionary for use of their json formatted webster's dictionary.
 
-## Blueprint:
+## Install
 
-An sqlite database will first be generated from a json file to allow fast lookups.
+first download the repo files and place them in the desired location on your filesystem
+
+then run ```go generate ./... && go install ./cmd/adict``` from the root of the repo (the folder with go.mod)
+this will install the dictionary sql at ~/.local/share/adict by default and can be changed with a .env file at the root of the repo
+
+```ADICT_DB="$HOME/.local/share/adict/dictionary.db"```
+
+after that you can run the command from anywhere with ```adict <args>```
+
+you can also use the following to customize your installation
+
+go -C abs/path/to/repo run ./cmd/gen -in ./data/dictionary.json -out "abs/path/to/database/destination" -schema ./cmd/gen/schema.sql
+
+## Enjoy

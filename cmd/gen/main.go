@@ -7,9 +7,10 @@ import (
 	"io"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 
-	_ "modernc.org/sqlite"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 type entry struct {
@@ -18,31 +19,54 @@ type entry struct {
 	Definitions []string `json:"definitions"`
 }
 
+func expandHome(p string) string {
+	if strings.HasPrefix(p, "~") {
+		if h, _ := os.UserHomeDir(); h != "" {
+			return filepath.Join(h, strings.TrimPrefix(p, "~"))
+		}
+	}
+	// expand $HOME too
+	if strings.HasPrefix(p, "$HOME/") {
+		if h, _ := os.UserHomeDir(); h != "" {
+			return filepath.Join(h, strings.TrimPrefix(p, "$HOME"))
+		}
+	}
+	return p
+}
+
 func main() {
 	in := flag.String("in", "./data/dictionary.json", "input JSON")
-	out := flag.String("out", "./assets/dictionary.db", "output SQLite DB")
+	out := flag.String("out", "~/.local/share/adict/dictionary.db", "output SQLite DB")
 	schema := flag.String("schema", "./cmd/gen/schema.sql", "schema SQL file")
 	flag.Parse()
 
-	if err := run(*in, *out, *schema); err != nil {
+	outPath := expandHome(*out)
+	if fi, err := os.Stat(outPath); err == nil && fi.IsDir() {
+		if err := os.RemoveAll(outPath); err != nil {
+			log.Fatal(err)
+		}
+	}
+	if err := os.MkdirAll(filepath.Dir(outPath), 0o755); err != nil {
+		log.Fatal(err)
+	}
+	if err := run(*in, outPath, *schema); err != nil {
 		log.Fatal(err)
 	}
 }
 
 func run(inPath, outPath, schemaPath string) error {
-	_ = os.MkdirAll("assets", 0o755)
 
-	db, err := sql.Open("sqlite", outPath)
+	// modernc.org/sqlite: use file: URI and mode=rwc
+	db, err := sql.Open("sqlite3", outPath+"?_journal=WAL&_busy_timeout=5000&_cache_size=-2000")
 	if err != nil {
 		return err
 	}
 	defer db.Close()
 
-	// pragmas for fast build and apply schema
-
-	if _, err = db.Exec(`PRAGMA journal_mode=OFF; PRAGMA synchonous=OFF; PRAGMA temp_store=MEMORY;`); err != nil {
+	if _, err := db.Exec(`PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL; PRAGMA temp_store=MEMORY;`); err != nil {
 		return err
 	}
+
 	schemaSQL, err := os.ReadFile(schemaPath)
 	if err != nil {
 		return err
