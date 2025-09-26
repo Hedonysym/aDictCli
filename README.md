@@ -1,6 +1,6 @@
 # aDictCli
 
-An offline cli dictionary with autocompletion/spell correction based on phoenetic matching, written in golang for a boot.dev solo project.
+An offline cli dictionary with autocompletion/spell correction, written in golang for a boot.dev solo project.
 
 ## Included external packages:
 
